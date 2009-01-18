@@ -32,11 +32,11 @@ SDL_Rect inputfield;
 SDL_Rect wildcards[MAX_WILDCARDS];
 Uint32 bgcolor, fgcolor;
 char input[256];
-int inputlen;
+int inputlen, activated;
 const char *pwdhash;
 
-int retreive_pwdhash();
-
+int retreive_pwdhash(void);
+void init_graphics(void);
 void draw_background(int direct);
 void draw_message(int direct);
 void draw_inputfield(int direct);
@@ -46,7 +46,6 @@ void position_wildcards(int direct);
 void update_inputfield(void);
 void update_screen(void);
 int handle_keyevent(SDL_KeyboardEvent *ev);
-
 int check_input(void);
 
 int main(int argc, char **argv)
@@ -54,15 +53,19 @@ int main(int argc, char **argv)
 	SDL_VideoInfo *vinfo;
 	SDL_Event ev;
 	int width, height;
-	int i, activated;
+	int i;
 	
 	if(argc == 2 && strcmp(argv[1], "-v") == 0) {
 		printf("securezone-%s, Copyright 2007 Pontus Andersson\n", VERSION);
 		exit(EXIT_SUCCESS);
-	}	
+	}
+
+	if(argc == 2 && strcmp(argv[1], "-b") == 0)
+		activated = 0;
+	else
+		activated = 1;
 
 	inputlen = 0;
-	activated = 0;
 
 	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
 		fprintf(stderr, "Could not init SDL video\n");
@@ -92,6 +95,9 @@ int main(int argc, char **argv)
 	if(!retreive_pwdhash())
 		goto stop;
 
+	if(activated)
+		init_graphics();
+
 	while(1) {
 		while(SDL_PollEvent(&ev)) {
 			switch(ev.type) {
@@ -100,10 +106,7 @@ int main(int argc, char **argv)
 						if(handle_keyevent(&ev.key))
 							goto stop;
 					} else {
-						draw_message(1);
-						draw_inputfield(1);
-						position_wildcards(1);
-						activated = 1;
+						init_graphics();
 					}
 			}
 		}
@@ -116,7 +119,7 @@ stop:
 	return EXIT_SUCCESS;
 }
 
-int retreive_pwdhash() {
+int retreive_pwdhash(void) {
 	struct spwd *sp;
 
 	if(geteuid() != 0) {
@@ -129,6 +132,14 @@ int retreive_pwdhash() {
 	pwdhash = sp->sp_pwdp;
 
 	return 1;
+}
+
+void init_graphics(void)
+{
+	draw_message(1);
+	draw_inputfield(1);
+	position_wildcards(1);
+	activated = 1;
 }
 
 void draw_background(int direct)
