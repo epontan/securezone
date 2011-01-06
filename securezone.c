@@ -306,6 +306,7 @@ int check_input(void)
 		return 0;
 	} else {
 		draw_access(denied, 1);
+		draw_access_blank(0);
 	}
 
 	inputlen = 0;
