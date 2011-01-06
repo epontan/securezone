@@ -283,7 +283,7 @@ int handle_keyevent(SDL_KeyboardEvent *ev)
 {
 	if ((ev->keysym.unicode & 0xFF80) == 0) {
 		char c = (ev->keysym.unicode) & 0x7F;
-		if(c > 0x1F && c < 0x7F) {
+		if(c > 0x1F && c < 0x7F && inputlen < sizeof(input)-1) {
 			input[inputlen++] = c;
 			update_inputfield();
 		} else {
