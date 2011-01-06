@@ -2,6 +2,9 @@
 
 include config.mk
 
+# securezone version
+VERSION = 0.1
+
 BIN = securezone
 SRC = securezone.c
 OBJ = ${SRC:.c=.o}
