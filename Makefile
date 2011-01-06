@@ -22,7 +22,7 @@ options:
 ${BIN}: ${OBJ}
 	@echo LD $@
 	@${LD} -o $@ ${OBJ} ${LDFLAGS}
-	@strip $@
+	@if [ -z "${DEBUG}" ]; then echo "Stripping $@"; strip $@; fi
 
 ${BINDIR}:
 	@mkdir -p ${BINDIR}

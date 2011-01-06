@@ -25,7 +25,6 @@
 #include <SDL.h>
 #include <SDL_image.h>
 
-#define PREFIX _PATH_PREFIX
 #define MAX_WILDCARDS 32
 
 SDL_Surface *screen, *message, *granted, *denied;
