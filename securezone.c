@@ -40,13 +40,13 @@ int retreive_pwdhash(void);
 int event_loop(SDL_Event *ev);
 SDL_Surface *load_image(const char *path);
 void init_graphics(void);
+void position_wildcards(void);
 void draw_background(int direct);
 void draw_message(int direct);
 void draw_inputfield(int direct);
 void draw_access_blank(int direct);
 void draw_access(SDL_Surface *image, int direct);
-void position_wildcards(int direct);
-void update_inputfield(void);
+void draw_input(int direct);
 void update_screen(void);
 int handle_keyevent(SDL_KeyboardEvent *ev);
 int check_input(void);
@@ -95,8 +95,7 @@ int main(int argc, char **argv)
 	granted = load_image(PREFIX"/share/securezone/access_granted.png");
 	denied = load_image(PREFIX"/share/securezone/access_denied.png");
 
-	draw_background(0);
-	update_screen();
+	draw_background(1);
 	
 	if(activated)
 		init_graphics();
@@ -162,11 +161,27 @@ SDL_Surface *load_image(const char *path)
 	return image;
 }
 
+void position_wildcards(void)
+{
+	SDL_Rect *wc;
+	int i, size, y;
+
+	size = (inputfield.w / MAX_WILDCARDS) - (inputfield.w * .02);
+	y = inputfield.y + ((inputfield.h * .5) - (size * .5)); 
+
+	for(i = 0; i < MAX_WILDCARDS; i++) {
+		wc = &wildcards[i];
+		wc->w = size; wc->h = size;
+		wc->y = y;
+		wc->x = inputfield.x + (size * 3) + ((size * 2.8) * i);
+	}
+}
+
 void init_graphics(void)
 {
-	draw_message(1);
+	draw_message(0);
 	draw_inputfield(1);
-	position_wildcards(1);
+	position_wildcards();
 	activated = 1;
 }
 
@@ -238,27 +253,7 @@ void draw_access(SDL_Surface *image, int direct)
 		update_screen();
 }
 
-void position_wildcards(int direct)
-{
-	SDL_Rect *wc;
-	int i, size, y;
-
-	size = (inputfield.w / MAX_WILDCARDS) - (inputfield.w * .02);
-	y = inputfield.y + ((inputfield.h * .5) - (size * .5)); 
-
-	for(i = 0; i < MAX_WILDCARDS; i++) {
-		wc = &wildcards[i];
-		wc->w = size; wc->h = size;
-		wc->y = y;
-		wc->x = inputfield.x + (size * 3) + ((size * 2.8) * i);
-		SDL_FillRect(screen, wc, bgcolor);
-	}
-
-	if(direct)
-		update_screen();
-}
-
-void update_inputfield(void)
+void draw_input(int direct)
 {
 	int i, len;
 
@@ -271,7 +266,8 @@ void update_inputfield(void)
 		for(i = inputlen; i < MAX_WILDCARDS; i++)
 			SDL_FillRect(screen, &wildcards[i], bgcolor);
 	
-	update_screen();
+	if(direct)
+		update_screen();
 }
 
 void update_screen(void)
@@ -285,18 +281,16 @@ int handle_keyevent(SDL_KeyboardEvent *ev)
 		char c = (ev->keysym.unicode) & 0x7F;
 		if(c > 0x1F && c < 0x7F && inputlen < sizeof(input)-1) {
 			input[inputlen++] = c;
-			update_inputfield();
 		} else {
 			if(ev->keysym.sym == SDLK_RETURN) {
 				return check_input();
 			} else if(ev->keysym.sym == SDLK_BACKSPACE) {
 				inputlen = inputlen > 0 ? inputlen - 1 : 0;
-				update_inputfield();
 			} else if(ev->keysym.sym == SDLK_ESCAPE) {
 				inputlen = 0;
-				update_inputfield();
 			}
 		}
+		draw_input(1);
 	}
 
 	return 1;
