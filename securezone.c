@@ -36,7 +36,7 @@ int inputlen, activated;
 const char *pwdhash;
 
 void exit_error(const char *error_str, ...);
-int retreive_pwdhash(void);
+int retrieve_pwdhash(void);
 int event_loop(SDL_Event *ev);
 SDL_Surface *load_image(const char *path);
 void init_graphics(void);
@@ -63,7 +63,7 @@ int main(int argc, char **argv)
 		exit(EXIT_SUCCESS);
 	}
 
-	if(!retreive_pwdhash())
+	if(!retrieve_pwdhash())
 		exit_error("Unable to get shadow entry. Make sure to suid!\n");
 
 	if(argc == 2 && strcmp(argv[1], "-b") == 0)
@@ -120,7 +120,7 @@ void exit_error(const char *error_str, ...)
 	exit(EXIT_FAILURE);
 }
 
-int retreive_pwdhash(void)
+int retrieve_pwdhash(void)
 {
 	struct spwd *sp;
 
