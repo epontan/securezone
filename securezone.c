@@ -39,12 +39,13 @@ const char *pwdhash;
 void exit_error(const char *error_str, ...);
 int retreive_pwdhash(void);
 int event_loop(SDL_Event *ev);
+SDL_Surface *load_image(const char *path);
 void init_graphics(void);
 void draw_background(int direct);
 void draw_message(int direct);
 void draw_inputfield(int direct);
-void draw_granted(int direct);
-void draw_denied(int direct);
+void draw_access_blank(int direct);
+void draw_access(SDL_Surface *image, int direct);
 void position_wildcards(int direct);
 void update_inputfield(void);
 void update_screen(void);
@@ -90,6 +91,11 @@ int main(int argc, char **argv)
 	fgcolor = SDL_MapRGB(screen->format, 0xff, 0xff, 0xff);
 
 	SDL_WM_ToggleFullScreen(screen);
+
+	message = load_image(PREFIX"/share/securezone/authreq_enterpasswd.png");
+	granted = load_image(PREFIX"/share/securezone/access_granted.png");
+	denied = load_image(PREFIX"/share/securezone/access_denied.png");
+
 	draw_background(0);
 	update_screen();
 	
@@ -105,7 +111,8 @@ int main(int argc, char **argv)
 	return EXIT_SUCCESS;
 }
 
-void exit_error(const char *error_str, ...) {
+void exit_error(const char *error_str, ...)
+{
 	va_list ap;
 	va_start(ap, error_str);
 	fprintf(stderr, "ERROR: ");
@@ -115,7 +122,8 @@ void exit_error(const char *error_str, ...) {
 	exit(EXIT_FAILURE);
 }
 
-int retreive_pwdhash(void) {
+int retreive_pwdhash(void)
+{
 	struct spwd *sp;
 
 	if(geteuid() != 0)
@@ -128,7 +136,8 @@ int retreive_pwdhash(void) {
 	return 1;
 }
 
-int event_loop(SDL_Event *ev) {
+int event_loop(SDL_Event *ev)
+{
 	if(!SDL_PollEvent(ev))
 		return 1;
 
@@ -140,6 +149,18 @@ int event_loop(SDL_Event *ev) {
 	}
 
 	return 1;
+}
+
+SDL_Surface *load_image(const char *path)
+{
+	SDL_RWops *rwop;
+	SDL_Surface *image;
+
+	rwop = SDL_RWFromFile(path, "rb");
+	if(!(image = IMG_LoadPNG_RW(rwop)))
+		exit_error("IMG_LoadPNG_RW: %s\n", IMG_GetError());
+
+	return image;
 }
 
 void init_graphics(void)
@@ -164,13 +185,6 @@ void draw_background(int direct)
 void draw_message(int direct)
 {
 	SDL_Rect dest;
-	SDL_RWops *rwop;
-	rwop = SDL_RWFromFile(PREFIX"/share/securezone/authreq_enterpasswd.png", "rb");
-	message = IMG_LoadPNG_RW(rwop);
-	if(!message) {
-		printf("IMG_LoadPNG_RW: %s\n", IMG_GetError());
-		exit(EXIT_FAILURE);
-	}
 	dest.x = (screen->w * .5) - (message->w * .5);
 	dest.y = (screen->h * .5) - (message->h * 2);
 	SDL_BlitSurface(message, NULL, screen, &dest);
@@ -198,6 +212,33 @@ void draw_inputfield(int direct)
 		update_screen();
 }
 
+void draw_access_blank(int direct)
+{
+	SDL_Rect blank;
+	blank.w = granted->w > denied->w ? granted->w : denied->w;
+	blank.h = granted->h > denied->h ? granted->h : denied->h;
+	blank.x = (screen->w * .5) - (blank.w * .5);
+	blank.y = (screen->h * .5) + (blank.h * 2);
+	SDL_FillRect(screen, &blank, bgcolor);
+
+	if(direct)
+		update_screen();
+}
+
+void draw_access(SDL_Surface *image, int direct)
+{
+	SDL_Rect dest;
+	dest.w = image->w;
+	dest.h = image->h;
+	dest.x = (screen->w * .5) - (image->w * .5);
+	dest.y = (screen->h * .5) + (image->h * 2);
+	draw_access_blank(0);
+	SDL_BlitSurface(image, NULL, screen, &dest);
+
+	if(direct)
+		update_screen();
+}
+
 void position_wildcards(int direct)
 {
 	SDL_Rect *wc;
@@ -216,50 +257,6 @@ void position_wildcards(int direct)
 
 	if(direct)
 		update_screen();
-}
-
-void draw_granted(int direct)
-{
-	SDL_Rect dest;
-	SDL_RWops *rwop;
-	rwop = SDL_RWFromFile(PREFIX"/share/securezone/access_granted.png", "rb");
-	granted = IMG_LoadPNG_RW(rwop);
-	if(!granted) {
-		printf("IMG_LoadPNG_RW: %s\n", IMG_GetError());
-		exit(EXIT_FAILURE);
-	}
-	dest.w = screen->w;
-	dest.h = granted->h;
-	dest.x = (screen->w * .5) - (granted->w * .5);
-	dest.y = (screen->h * .5) + (granted->h * 2);
-	SDL_FillRect(screen, &dest, bgcolor);
-	SDL_BlitSurface(granted, NULL, screen, &dest);
-
-	if(direct)
-		update_screen();
-
-}
-
-void draw_denied(int direct)
-{
-	SDL_Rect dest;
-	SDL_RWops *rwop;
-	rwop = SDL_RWFromFile(PREFIX"/share/securezone/access_denied.png", "rb");
-	denied = IMG_LoadPNG_RW(rwop);
-	if(!denied) {
-		printf("IMG_LoadPNG_RW: %s\n", IMG_GetError());
-		exit(EXIT_FAILURE);
-	}
-	dest.w = screen->w;
-	dest.h = denied->h;
-	dest.x = (screen->w * .5) - (denied->w * .5);
-	dest.y = (screen->h * .5) + (denied->h * 2);
-	SDL_FillRect(screen, &dest, bgcolor);
-	SDL_BlitSurface(denied, NULL, screen, &dest);
-
-	if(direct)
-		update_screen();
-
 }
 
 void update_inputfield(void)
@@ -311,11 +308,11 @@ int check_input(void)
 	input[inputlen] = '\0';
 
 	if(strcmp(crypt(input, pwdhash), pwdhash) == 0) {
-		draw_granted(1);
+		draw_access(granted, 1);
 		sleep(1);
 		return 0;
 	} else {
-		draw_denied(1);
+		draw_access(denied, 1);
 	}
 
 	inputlen = 0;
