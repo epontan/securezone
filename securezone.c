@@ -1,6 +1,6 @@
 /* SecureZone - A movie inspired screen lock/saver written in C and SDL
  *
- * Copyright 2007 Pontus Andersson
+ * Copyright 2010 Pontus Andersson [pesa]
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <unistd.h>
 #include <string.h>
 #include <shadow.h>
@@ -35,7 +36,9 @@ char input[256];
 int inputlen, activated;
 const char *pwdhash;
 
+void exit_error(const char *error_str, ...);
 int retreive_pwdhash(void);
+int event_loop(SDL_Event *ev);
 void init_graphics(void);
 void draw_background(int direct);
 void draw_message(int direct);
@@ -56,9 +59,12 @@ int main(int argc, char **argv)
 	int i;
 	
 	if(argc == 2 && strcmp(argv[1], "-v") == 0) {
-		printf("securezone-%s, Copyright 2007 Pontus Andersson\n", VERSION);
+		printf("securezone-%s, Copyright 2010 Pontus Andersson [pesa]\n", VERSION);
 		exit(EXIT_SUCCESS);
 	}
+
+	if(!retreive_pwdhash())
+		exit_error("Unable to get shadow entry. Make sure to suid!\n");
 
 	if(argc == 2 && strcmp(argv[1], "-b") == 0)
 		activated = 0;
@@ -67,10 +73,8 @@ int main(int argc, char **argv)
 
 	inputlen = 0;
 
-	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-		fprintf(stderr, "Could not init SDL video\n");
-		exit(EXIT_FAILURE);
-	}
+	if (SDL_Init(SDL_INIT_VIDEO) < 0)
+		exit_error("Could not init SDL video\n");
 
 	SDL_ShowCursor(SDL_DISABLE);
 	SDL_EnableUNICODE(SDL_ENABLE);
@@ -79,11 +83,8 @@ int main(int argc, char **argv)
 	width = vinfo->current_w;
 	height = vinfo->current_h;
 
-	screen = SDL_SetVideoMode(width, height, 32, SDL_SWSURFACE);
-	if (screen == NULL) {
-		fprintf(stderr, "Unable to set surface: %s\n", SDL_GetError());
-		exit(EXIT_FAILURE);
-	}
+	if((screen = SDL_SetVideoMode(width, height, 32, SDL_SWSURFACE)) == NULL)
+		exit_error("Unable to set surface: %s\n", SDL_GetError());
 
 	bgcolor = SDL_MapRGB(screen->format, 0x00, 0x00, 0x00);
 	fgcolor = SDL_MapRGB(screen->format, 0xff, 0xff, 0xff);
@@ -92,44 +93,51 @@ int main(int argc, char **argv)
 	draw_background(0);
 	update_screen();
 	
-	if(!retreive_pwdhash())
-		goto stop;
-
 	if(activated)
 		init_graphics();
 
-	while(1) {
-		while(SDL_PollEvent(&ev)) {
-			switch(ev.type) {
-				case SDL_KEYDOWN:
-					if(activated) {
-						if(handle_keyevent(&ev.key))
-							goto stop;
-					} else {
-						init_graphics();
-					}
-			}
-		}
-	}
+	while(event_loop(&ev));
 
-stop:
 	for(i = 0; i < inputlen; i++)
 		input[i] = '\0';
+
 	SDL_Quit();
 	return EXIT_SUCCESS;
+}
+
+void exit_error(const char *error_str, ...) {
+	va_list ap;
+	va_start(ap, error_str);
+	fprintf(stderr, "ERROR: ");
+	vfprintf(stderr, error_str, ap);
+	va_end(ap);
+	SDL_Quit();
+	exit(EXIT_FAILURE);
 }
 
 int retreive_pwdhash(void) {
 	struct spwd *sp;
 
-	if(geteuid() != 0) {
-		fprintf(stderr, "Unable to get shadow entry. Make sure to suid!\n");
+	if(geteuid() != 0)
 		return 0;
-	}
 
 	sp = getspnam(getenv("USER"));
 	endspent();
 	pwdhash = sp->sp_pwdp;
+
+	return 1;
+}
+
+int event_loop(SDL_Event *ev) {
+	if(!SDL_PollEvent(ev))
+		return 1;
+
+	if(ev->type == SDL_KEYDOWN) {
+		if(activated)
+			return handle_keyevent(&ev->key);
+		else
+			init_graphics();
+	}
 
 	return 1;
 }
@@ -295,7 +303,7 @@ int handle_keyevent(SDL_KeyboardEvent *ev)
 		}
 	}
 
-	return 0;
+	return 1;
 }
 
 int check_input(void)
@@ -305,12 +313,12 @@ int check_input(void)
 	if(strcmp(crypt(input, pwdhash), pwdhash) == 0) {
 		draw_granted(1);
 		sleep(1);
-		return 1;
+		return 0;
 	} else {
 		draw_denied(1);
 	}
 
 	inputlen = 0;
 
-	return 0;
+	return 1;
 }
