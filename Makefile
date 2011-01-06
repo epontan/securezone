@@ -1,9 +1,10 @@
 # securezone
 
 include config.mk
+sinclude config.local.mk
 
 # securezone version
-VERSION = 0.1
+VERSION = 0.2
 
 BIN = securezone
 SRC = securezone.c
