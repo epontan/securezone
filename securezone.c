@@ -136,7 +136,7 @@ int retrieve_pwdhash(void)
 
 int event_loop(SDL_Event *ev)
 {
-	if(!SDL_PollEvent(ev))
+	if(!SDL_WaitEvent(ev))
 		return 1;
 
 	if(ev->type == SDL_KEYDOWN) {
