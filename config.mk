@@ -1,15 +1,12 @@
 # paths
 PREFIX = /usr/local
 
-# debug
-#DEBUG = -ggdb -std=c99 -pedantic
-
 # includes and libs
 INCS = -I/usr/include
-LIBS = -lc -lcrypt `sdl-config --libs` -lSDL_image 
+LIBS = -lX11 -lXext -lXinerama -lpam
 
 # flags
-CFLAGS = ${DEBUG} -Wall -Os ${INCS} `sdl-config --cflags` \
+CFLAGS = ${DEBUG} -Wall -Os ${INCS} \
 		 -DPREFIX=\"$(PREFIX)\" \
 		 -DVERSION=\"${VERSION}\"
 LDFLAGS = ${DEBUG} ${LIBS}

@@ -1,14 +1,14 @@
-SecureZone - A movie inspired screen lock/saver written in C and SDL
----------------------------------------------------------------------
+SecureZone - A movie inspired screen locker written in C, using Xlib and PAM
+----------------------------------------------------------------------------
 
 1. Introduction
 SecureZone locks your X session, and has a movie inspired and high tech
 look. The purpose of creating this application, was just me who wanted
-to learn a bit about SDL, and ofc, for the fun of it ;)
+to learn a bit about Xlib and PAM, as well as the fun of doing it ;)
 
 2. Prerequisites
 You will need the essential build tools (gcc, make, etc.), and
-libsdl + libsdl_image
+libx11 + (libxinerama + libext) + libpam
 
 3. Installation
 Edit the config.mk to suit your desired setup.
@@ -16,4 +16,4 @@ Run "make" to build securezone and then run "make install" to install
 it to your system (NOTE! You may need to be root for this).
 
 4. Authors
-Pontus Andersson <a.pontus (at) gmail (dot) com>
+Pontus Andersson <epontan (at) gmail (dot) com>

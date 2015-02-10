@@ -4,7 +4,7 @@ include config.mk
 sinclude config.local.mk
 
 # securezone version
-VERSION = 0.3
+VERSION = 1.0
 
 BIN = securezone
 SRC = securezone.c
@@ -33,6 +33,12 @@ ${OBJ}: config.mk
 	@echo CC $@
 	@${CC} -c ${CFLAGS} $<
 
+debug: DEBUG = -ggdb
+debug: all
+
+test: CFLAGS += -DTEST
+test: debug
+
 clean:
 	@echo cleaning
 	@rm -f ${BIN} ${OBJ} ${BIN}-${VERSION}.tar.gz
@@ -44,21 +50,14 @@ dist: clean
 	@tar -cf ${BIN}-${VERSION}.tar ${BIN}-${VERSION}
 	@gzip ${BIN}-${VERSION}.tar
 	@rm -rf ${BIN}-${VERSION}
+	@md5sum ${BIN}-${VERSION}.tar.gz
 
 install: all
 	@echo installing executable file to ${DESTDIR}${PREFIX}/bin
-	@mkdir -p ${DESTDIR}${PREFIX}/bin
-	@cp -f ${BIN} ${DESTDIR}${PREFIX}/bin
-	@chmod 755 ${DESTDIR}${PREFIX}/bin/${BIN}
-	@chmod u+s ${DESTDIR}${PREFIX}/bin/${BIN}
-	@echo copying image files to ${DESTDIR}${PREFIX}/share/${BIN}
-	@mkdir -p ${DESTDIR}${PREFIX}/share/${BIN}
-	@cp -f images/*.png ${DESTDIR}${PREFIX}/share/${BIN}
+	@install -Dm755 ${BIN} ${DESTDIR}${PREFIX}/bin/${BIN}
 
 uninstall:
 	@echo removing executable file from ${DESTDIR}${PREFIX}/bin
 	@rm -f ${DESTDIR}${PREFIX}/bin/{BIN}
-	@echo removing image files from ${DESTDIR}${PREFIX}/share/${BIN}
-	@rm -rf ${DESTDIR}${PREFIX}/share/${BIN}
 
-.PHONY: all options clean dist install uninstall
+.PHONY: all test debug options test clean dist install uninstall
